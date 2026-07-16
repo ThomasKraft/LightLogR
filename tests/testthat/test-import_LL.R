@@ -50,3 +50,27 @@ test_that("import works", {
   #check if the function extracted the correct name from the filepath and whether there is only one
   expect_equal(unique(data$Id) %>% as.character(), "205")
 })
+
+test_that("VEET import handles ragged mixed-modality files", {
+  filename <- tempfile(fileext = ".csv")
+  writeLines(
+    c(
+      paste(c(1719835200, "PHO", 100, 1, 10:18, 0, 100), collapse = ","),
+      paste(c(1719835230, "TOF", seq_len(256)), collapse = ","),
+      paste(c(1719835260, "PHO", 101, 2, 20:28, 1, 200), collapse = ",")
+    ),
+    filename
+  )
+  
+  data <- import$VEET(
+    filename,
+    modality = "PHO",
+    auto.plot = FALSE,
+    silent = TRUE
+  )
+  
+  expect_equal(nrow(data), 2)
+  expect_equal(data$modality, c("PHO", "PHO"))
+  expect_equal(data$Clear, c(100, 200))
+  expect_equal(data$s910, c(18, 28))
+})

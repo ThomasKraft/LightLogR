@@ -382,17 +382,23 @@ import_expr <- list(
     
     data <- 
       purrr::map(filename, \(filename) {
-        pattern <- paste0("^(?:[^,]*,){1}\\b", modality, "\\b")
+        column_names <- names(veet_names[[modality]])
         data <- 
-          readr::read_lines(file = filename, locale = locale, n_max = n_max)
-        data <- data[data %>% stringr::str_detect(pattern)]
-        data <- data |> 
-                  tibble::as_tibble() |> 
-                  tidyr::separate_wider_delim(value, 
-                                              ",", 
-                                              names = names(veet_names[[modality]])
-                                              )
+          data.table::fread(
+            file = filename,
+            header = FALSE,
+            sep = ",",
+            fill = TRUE,
+            select = seq_along(column_names),
+            col.names = column_names,
+            colClasses = "character",
+            nrows = n_max,
+            data.table = FALSE,
+            showProgress = FALSE
+          )
+        data <- data[data$modality == modality, , drop = FALSE]
         data <- data %>% 
+          tibble::as_tibble() %>% 
           dplyr::mutate(file.name = filename, .before = 1)
         data
       }) %>% purrr::list_rbind()
